@@ -5,11 +5,23 @@ require("dotenv").config();
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// ✅ CORS FIX
+app.use(
+  cors({
+    origin: [
+      "https://sheltercastle.com",
+      "http://localhost:5173",
+      "http://localhost:3000",
+    ],
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
+  })
+);
+
+app.options("*", cors());
 app.use(express.json());
 
-// Health check (optional but useful)
+// Health check
 app.get("/", (req, res) => {
   res.send("Backend is running");
 });
@@ -18,7 +30,6 @@ app.get("/", (req, res) => {
 app.post("/send-message", async (req, res) => {
   const { name, email, message } = req.body;
 
-  // Basic validation
   if (!name || !email || !message) {
     return res.status(400).json({ success: false, message: "Missing fields" });
   }
@@ -57,8 +68,8 @@ app.post("/send-message", async (req, res) => {
   }
 });
 
-// Start server
+// Start server (Railway compatible)
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`✅ Backend running on http://localhost:${PORT}`);
+  console.log(`🚀 Backend running on port ${PORT}`);
 });
