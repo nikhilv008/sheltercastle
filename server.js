@@ -1,27 +1,28 @@
 const express = require("express");
 const nodemailer = require("nodemailer");
-const cors = require("cors");
 require("dotenv").config();
 
 const app = express();
 
-// ✅ FIXED CORS (NO app.options("*"))
-app.use(
-  cors({
-    origin: "https://sheltercastle.com",
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type"],
-  })
-);
+// ✅ HARD CORS FIX (preflight-safe)
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "https://sheltercastle.com");
+  res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
 
 app.use(express.json());
 
-// Health check
 app.get("/", (req, res) => {
   res.send("Backend is running");
 });
 
-// Contact form API
 app.post("/send-message", async (req, res) => {
   const { name, email, message } = req.body;
 
@@ -42,11 +43,7 @@ app.post("/send-message", async (req, res) => {
       from: `"${name}" <${email}>`,
       to: process.env.RECEIVER_EMAIL,
       subject: "New Contact Form Message",
-      html: `
-        <p><b>Name:</b> ${name}</p>
-        <p><b>Email:</b> ${email}</p>
-        <p>${message}</p>
-      `,
+      html: `<p>${message}</p>`,
     });
 
     res.json({ success: true });
@@ -58,5 +55,5 @@ app.post("/send-message", async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log("🚀 Backend running");
 });
