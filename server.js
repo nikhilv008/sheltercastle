@@ -5,20 +5,15 @@ require("dotenv").config();
 
 const app = express();
 
-// ✅ CORS FIX
+// ✅ FIXED CORS (NO app.options("*"))
 app.use(
   cors({
-    origin: [
-      "https://sheltercastle.com",
-      "http://localhost:5173",
-      "http://localhost:3000",
-    ],
-    methods: ["GET", "POST", "OPTIONS"],
+    origin: "https://sheltercastle.com",
+    methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type"],
   })
 );
 
-app.options("*", cors());
 app.use(express.json());
 
 // Health check
@@ -31,7 +26,7 @@ app.post("/send-message", async (req, res) => {
   const { name, email, message } = req.body;
 
   if (!name || !email || !message) {
-    return res.status(400).json({ success: false, message: "Missing fields" });
+    return res.status(400).json({ success: false });
   }
 
   try {
@@ -48,28 +43,20 @@ app.post("/send-message", async (req, res) => {
       to: process.env.RECEIVER_EMAIL,
       subject: "New Contact Form Message",
       html: `
-        <h3>New Contact Form Submission</h3>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Message:</strong> ${message}</p>
+        <p><b>Name:</b> ${name}</p>
+        <p><b>Email:</b> ${email}</p>
+        <p>${message}</p>
       `,
     });
 
-    res.status(200).json({
-      success: true,
-      message: "Email sent successfully",
-    });
-  } catch (error) {
-    console.error("Email error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to send email",
-    });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
   }
 });
 
-// Start server (Railway compatible)
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Backend running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
