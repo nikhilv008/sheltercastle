@@ -1,10 +1,13 @@
 const express = require("express");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 require("dotenv").config();
 
 const app = express();
 
-/* ✅ CORS – FIXED */
+/* ✅ Init Resend */
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+/* ✅ CORS */
 app.use((req, res, next) => {
   const allowedOrigins = [
     "https://sheltercastle.com",
@@ -27,12 +30,15 @@ app.use((req, res, next) => {
   next();
 });
 
+/* Body parser */
 app.use(express.json());
 
+/* Health check */
 app.get("/", (req, res) => {
   res.send("Backend is running");
 });
 
+/* ✅ Contact route (RESEND EMAIL) */
 app.post("/send-message", async (req, res) => {
   const { name, email, message } = req.body;
 
@@ -41,21 +47,10 @@ app.post("/send-message", async (req, res) => {
   }
 
   try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
-    });
-
-    const info = await transporter.sendMail({
-      from: `"Shelter Castle Contact" <${process.env.EMAIL_USER}>`,
-      replyTo: email,
+    const result = await resend.emails.send({
+      from: "Shelter Castle <onboarding@resend.dev>", // works instantly
       to: process.env.RECEIVER_EMAIL,
+      reply_to: email,
       subject: "New Contact Form Message",
       html: `
         <h3>New Contact Form Submission</h3>
@@ -65,11 +60,11 @@ app.post("/send-message", async (req, res) => {
       `,
     });
 
-    console.log("EMAIL SENT:", info.messageId);
-    return res.json({ success: true });
+    console.log("RESEND EMAIL SENT:", result.id);
 
-  } catch (err) {
-    console.error("EMAIL ERROR:", err.message);
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("RESEND ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Email service unavailable",
@@ -77,6 +72,7 @@ app.post("/send-message", async (req, res) => {
   }
 });
 
+/* Railway port */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
