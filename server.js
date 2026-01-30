@@ -4,7 +4,7 @@ require("dotenv").config();
 
 const app = express();
 
-/* ✅ CORS – SINGLE SOURCE OF TRUTH */
+/* ✅ CORS – FIXED */
 app.use((req, res, next) => {
   const allowedOrigins = [
     "https://sheltercastle.com",
@@ -27,15 +27,12 @@ app.use((req, res, next) => {
   next();
 });
 
-/* Body parser */
 app.use(express.json());
 
-/* Health check */
 app.get("/", (req, res) => {
   res.send("Backend is running");
 });
 
-/* Contact route (EMAIL SENDS HERE) */
 app.post("/send-message", async (req, res) => {
   const { name, email, message } = req.body;
 
@@ -50,6 +47,9 @@ app.post("/send-message", async (req, res) => {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
     });
 
     const info = await transporter.sendMail({
@@ -66,15 +66,17 @@ app.post("/send-message", async (req, res) => {
     });
 
     console.log("EMAIL SENT:", info.messageId);
+    return res.json({ success: true });
 
-    res.json({ success: true });
   } catch (err) {
-    console.error("EMAIL ERROR:", err);
-    res.status(500).json({ success: false });
+    console.error("EMAIL ERROR:", err.message);
+    return res.status(500).json({
+      success: false,
+      message: "Email service unavailable",
+    });
   }
 });
 
-/* Railway port */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
