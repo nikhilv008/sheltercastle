@@ -1,4 +1,6 @@
 const express = require("express");
+const nodemailer = require("nodemailer");
+require("dotenv").config();
 
 const app = express();
 
@@ -33,16 +35,41 @@ app.get("/", (req, res) => {
   res.send("Backend is running");
 });
 
-/* Contact route */
+/* Contact route (EMAIL SENDS HERE) */
 app.post("/send-message", async (req, res) => {
+  const { name, email, message } = req.body;
+
+  if (!name || !email || !message) {
+    return res.status(400).json({ success: false });
+  }
+
   try {
-    const { name, email, message } = req.body;
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
 
-    console.log(name, email, message);
+    const info = await transporter.sendMail({
+      from: `"Shelter Castle Contact" <${process.env.EMAIL_USER}>`,
+      replyTo: email,
+      to: process.env.RECEIVER_EMAIL,
+      subject: "New Contact Form Message",
+      html: `
+        <h3>New Contact Form Submission</h3>
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Message:</strong><br/>${message}</p>
+      `,
+    });
 
-    res.status(200).json({ success: true });
+    console.log("EMAIL SENT:", info.messageId);
+
+    res.json({ success: true });
   } catch (err) {
-    console.error(err);
+    console.error("EMAIL ERROR:", err);
     res.status(500).json({ success: false });
   }
 });
