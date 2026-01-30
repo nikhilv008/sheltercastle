@@ -1,34 +1,44 @@
 const express = require("express");
-const cors = require("cors");
 
 const app = express();
 
-/* ✅ CORS – MUST BE FIRST */
-app.use(cors({
-  origin: "https://sheltercastle.com",
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type"],
-}));
+/* ✅ CORS – SINGLE SOURCE OF TRUTH */
+app.use((req, res, next) => {
+  const allowedOrigins = [
+    "https://sheltercastle.com",
+    "https://www.sheltercastle.com",
+  ];
 
-/* ✅ Handle preflight explicitly */
-app.options("*", cors());
+  const origin = req.headers.origin;
 
-/* ✅ Body parser */
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
+
+/* Body parser */
 app.use(express.json());
 
-/* ✅ Health check */
+/* Health check */
 app.get("/", (req, res) => {
   res.send("Backend is running");
 });
 
-/* ✅ Contact route */
+/* Contact route */
 app.post("/send-message", async (req, res) => {
   try {
     const { name, email, message } = req.body;
 
     console.log(name, email, message);
-
-    // send email / save logic here
 
     res.status(200).json({ success: true });
   } catch (err) {
@@ -37,8 +47,8 @@ app.post("/send-message", async (req, res) => {
   }
 });
 
-/* ✅ Railway PORT */
+/* Railway port */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
